@@ -11,6 +11,8 @@ const tutorials = [
     level: "Beginner",
     href: "/tutorials/getting-started-n8n-claude",
     coming: false,
+    gradient: "from-emerald-900 via-green-900 to-gray-900",
+    icon: "🚀",
   },
   {
     title: "What is MCP and Why It Matters for n8n",
@@ -19,6 +21,8 @@ const tutorials = [
     level: "Beginner",
     href: "/tutorials/what-is-mcp",
     coming: false,
+    gradient: "from-blue-900 via-cyan-900 to-gray-900",
+    icon: "🔗",
   },
   {
     title: "Build a Vibe Marketing Stack from Scratch",
@@ -27,6 +31,8 @@ const tutorials = [
     level: "Intermediate",
     href: "/tutorials/vibe-marketing-stack",
     coming: false,
+    gradient: "from-purple-900 via-violet-900 to-gray-900",
+    icon: "📡",
   },
   {
     title: "n8n MCP Server: Connect AI Agents to Workflows",
@@ -35,6 +41,8 @@ const tutorials = [
     level: "Advanced",
     href: "#",
     coming: true,
+    gradient: "from-red-900 via-rose-900 to-gray-900",
+    icon: "🧠",
   },
   {
     title: "Advanced Prompting Patterns for n8n AI Nodes",
@@ -43,6 +51,8 @@ const tutorials = [
     level: "Intermediate",
     href: "#",
     coming: true,
+    gradient: "from-amber-900 via-yellow-900 to-gray-900",
+    icon: "💬",
   },
   {
     title: "Building a Lead Scoring Engine with AI",
@@ -51,12 +61,20 @@ const tutorials = [
     level: "Advanced",
     href: "#",
     coming: true,
+    gradient: "from-teal-900 via-emerald-900 to-gray-900",
+    icon: "🎯",
   },
 ];
 
+const levelColors: Record<string, string> = {
+  Beginner: "bg-green-950 text-green-300 border-green-800",
+  Intermediate: "bg-yellow-950 text-yellow-300 border-yellow-800",
+  Advanced: "bg-red-950 text-red-300 border-red-800",
+};
+
 export default function TutorialsPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-16">
+    <div className="max-w-5xl mx-auto px-4 py-16">
       <div className="text-center mb-16">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
           Tutorials
@@ -66,34 +84,38 @@ export default function TutorialsPage() {
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tutorials.map((t, i) => (
           <a
             key={i}
             href={t.coming ? undefined : t.href}
-            className={`block bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-turtle-700 transition ${t.coming ? 'opacity-60 cursor-default' : ''}`}
+            className={`group block bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-turtle-700 transition ${t.coming ? 'opacity-50 cursor-default' : ''}`}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs bg-turtle-950 text-turtle-300 px-2.5 py-1 rounded-full border border-turtle-800">
-                    {t.level}
+            {/* Image area */}
+            <div className={`h-40 bg-gradient-to-br ${t.gradient} relative flex items-center justify-center overflow-hidden`}>
+              <span className="text-5xl opacity-30 group-hover:opacity-50 transition-opacity">{t.icon}</span>
+              {t.coming && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white/80 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    Coming Soon
                   </span>
-                  <span className="text-xs text-gray-500">⏱ {t.time}</span>
-                  {t.coming && (
-                    <span className="text-xs bg-gray-800 text-gray-400 px-2.5 py-1 rounded-full">
-                      Coming soon
-                    </span>
-                  )}
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">{t.title}</h2>
-                <p className="text-gray-400 leading-relaxed">{t.description}</p>
-              </div>
-              {!t.coming && (
-                <span className="shrink-0 bg-turtle-600 hover:bg-turtle-500 text-white px-5 py-2.5 rounded-lg font-medium transition mt-2">
-                  Read →
-                </span>
               )}
+              <div className="absolute top-3 left-3">
+                <span className={`text-xs px-2 py-1 rounded-full border ${levelColors[t.level]}`}>
+                  {t.level}
+                </span>
+              </div>
+              <div className="absolute top-3 right-3">
+                <span className="text-xs bg-black/40 text-white/70 px-2 py-1 rounded backdrop-blur-sm">
+                  ⏱ {t.time}
+                </span>
+              </div>
+            </div>
+            {/* Content */}
+            <div className="p-5">
+              <h2 className="text-lg font-bold text-white mb-2 group-hover:text-turtle-400 transition">{t.title}</h2>
+              <p className="text-gray-400 text-sm leading-relaxed">{t.description}</p>
             </div>
           </a>
         ))}

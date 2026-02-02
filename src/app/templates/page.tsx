@@ -5,6 +5,22 @@ export const metadata = {
   description: "Premium and free n8n workflow templates for AI automation, MCP integration, content marketing, and more.",
 };
 
+const categoryStyles: Record<string, { gradient: string; icon: string }> = {
+  Content: { gradient: "from-purple-900 via-fuchsia-900 to-gray-900", icon: "📝" },
+  Productivity: { gradient: "from-blue-900 via-indigo-900 to-gray-900", icon: "⚡" },
+  MCP: { gradient: "from-emerald-900 via-teal-900 to-gray-900", icon: "🔌" },
+  Sales: { gradient: "from-orange-900 via-amber-900 to-gray-900", icon: "💰" },
+  Research: { gradient: "from-cyan-900 via-sky-900 to-gray-900", icon: "🔍" },
+  Marketing: { gradient: "from-pink-900 via-rose-900 to-gray-900", icon: "📡" },
+  Email: { gradient: "from-violet-900 via-purple-900 to-gray-900", icon: "✉️" },
+};
+
+const diffColors: Record<string, string> = {
+  beginner: "bg-green-950 text-green-300 border-green-800",
+  intermediate: "bg-yellow-950 text-yellow-300 border-yellow-800",
+  advanced: "bg-red-950 text-red-300 border-red-800",
+};
+
 export default function TemplatesPage() {
   const free = templates.filter((t) => t.price === 0);
   const paid = templates.filter((t) => t.price > 0);
@@ -51,37 +67,53 @@ export default function TemplatesPage() {
 }
 
 function TemplateCard({ template: t }: { template: typeof templates[0] }) {
-  const diffColors = {
-    beginner: "bg-green-950 text-green-300 border-green-800",
-    intermediate: "bg-yellow-950 text-yellow-300 border-yellow-800",
-    advanced: "bg-red-950 text-red-300 border-red-800",
-  };
+  const style = categoryStyles[t.category] || { gradient: "from-gray-800 to-gray-900", icon: "⚙️" };
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-turtle-700 transition group flex flex-col">
-      <div className="h-32 bg-gradient-to-br from-turtle-950 to-gray-900 flex items-center justify-center relative">
-        <span className="text-4xl opacity-40 group-hover:opacity-70 transition">⚙️</span>
+      {/* Image area */}
+      <div className={`h-40 bg-gradient-to-br ${style.gradient} relative flex items-center justify-center overflow-hidden`}>
+        <span className="text-5xl opacity-30 group-hover:opacity-50 transition-opacity">{style.icon}</span>
+        {/* Decorative dots pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <svg width="100%" height="100%">
+            <pattern id={`dots-${t.id}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1" fill="white"/>
+            </pattern>
+            <rect width="100%" height="100%" fill={`url(#dots-${t.id})`}/>
+          </svg>
+        </div>
+        {/* Price badge */}
         <div className="absolute top-3 right-3">
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm ${
             t.price === 0
-              ? "bg-green-950 text-green-300 border border-green-800"
+              ? "bg-green-500/20 text-green-300 border border-green-500/30"
               : "bg-white/10 text-white border border-white/20"
           }`}>
             {t.price === 0 ? "Free" : `$${t.price}`}
           </span>
         </div>
-      </div>
-      <div className="p-5 flex flex-col flex-1">
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className="text-xs bg-turtle-950 text-turtle-300 px-2 py-0.5 rounded-full border border-turtle-800">
+        {/* Node count */}
+        <div className="absolute bottom-3 right-3">
+          <span className="text-xs bg-black/40 text-white/60 px-2 py-1 rounded backdrop-blur-sm">
+            {t.nodes} nodes
+          </span>
+        </div>
+        {/* Category label */}
+        <div className="absolute bottom-3 left-3">
+          <span className="text-xs font-mono bg-black/40 text-white/70 px-2 py-1 rounded backdrop-blur-sm">
             {t.category}
           </span>
+        </div>
+      </div>
+      {/* Content */}
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center gap-2 mb-3">
           <span className={`text-xs px-2 py-0.5 rounded-full border ${diffColors[t.difficulty]}`}>
             {t.difficulty}
           </span>
-          <span className="text-xs text-gray-500">{t.nodes} nodes</span>
         </div>
-        <h3 className="text-lg font-bold text-white mb-2">{t.title}</h3>
+        <h3 className="text-lg font-bold text-white mb-2 group-hover:text-turtle-400 transition">{t.title}</h3>
         <p className="text-gray-400 text-sm leading-relaxed flex-1">{t.description}</p>
         <div className="mt-4 flex flex-wrap gap-1.5">
           {t.tools.map((tool) => (
