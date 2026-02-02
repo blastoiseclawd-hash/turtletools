@@ -5,6 +5,14 @@ export const metadata = {
 
 const posts = [
   {
+    title: "How to Set Up an n8n MCP Server with Claude (Step-by-Step)",
+    description: "Connect Claude to your n8n workflows using the Model Context Protocol. Give your AI agent real tools — not just chat.",
+    date: "Feb 2, 2026",
+    readTime: "8 min",
+    href: "/blog/n8n-mcp-server-setup",
+    tags: ["n8n", "MCP", "Claude"],
+  },
+  {
     title: "What is Vibe Marketing? Complete Guide for 2026",
     description: "One marketer doing the work of five using AI and automation. Tools, workflows, examples, and how to get started.",
     date: "Feb 2, 2026",
