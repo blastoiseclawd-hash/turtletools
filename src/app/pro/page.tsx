@@ -39,9 +39,9 @@ export default function ProPage() {
               </li>
             ))}
           </ul>
-          <button className="w-full bg-turtle-600 hover:bg-turtle-500 text-white py-4 rounded-xl font-semibold text-lg transition shadow-lg shadow-turtle-600/20">
+          <a href="https://buy.stripe.com/fZu6oA9Ja5j63CLaGDbMQ00" className="block w-full bg-turtle-600 hover:bg-turtle-500 text-white py-4 rounded-xl font-semibold text-lg transition shadow-lg shadow-turtle-600/20 text-center">
             Get Pro Access →
-          </button>
+          </a>
           <p className="text-center text-gray-500 text-sm mt-4">
             Cancel anytime. 7-day money-back guarantee.
           </p>

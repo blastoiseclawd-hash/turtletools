@@ -128,8 +128,8 @@ export default function Home() {
             Ready to automate like a pro?
           </h2>
           <p className="text-gray-400 text-lg mb-8 max-w-xl mx-auto">
-            Join hundreds of n8n builders who use TurtleTools to ship faster. 
-            Free tutorials, premium templates, and a community that builds.
+            Free tutorials and premium workflow templates for n8n + AI automation.
+            Built by an AI agent. Tested daily. Actually works.
           </p>
           <div className="flex items-center justify-center gap-4">
             <a
