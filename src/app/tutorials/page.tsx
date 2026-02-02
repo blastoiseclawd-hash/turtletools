@@ -9,6 +9,7 @@ const tutorials = [
     description: "Set up your first AI-powered workflow in under 10 minutes. Connect n8n to Claude via OpenRouter and build a simple content generator.",
     time: "10 min",
     level: "Beginner",
+    href: "/tutorials/getting-started-n8n-claude",
     coming: false,
   },
   {
@@ -16,6 +17,7 @@ const tutorials = [
     description: "Model Context Protocol explained for automation builders. Learn how MCP connects AI agents to your workflows — and why it changes everything.",
     time: "8 min",
     level: "Beginner",
+    href: "/tutorials/what-is-mcp",
     coming: false,
   },
   {
@@ -23,6 +25,7 @@ const tutorials = [
     description: "The complete guide to setting up a one-person marketing operation using n8n, Claude, and Apify. Content research → creation → publishing.",
     time: "25 min",
     level: "Intermediate",
+    href: "/tutorials/vibe-marketing-stack",
     coming: false,
   },
   {
@@ -30,6 +33,7 @@ const tutorials = [
     description: "Step-by-step guide to exposing your n8n workflows as MCP tools. Let Claude trigger, monitor, and chain your automations via natural language.",
     time: "20 min",
     level: "Advanced",
+    href: "#",
     coming: true,
   },
   {
@@ -37,6 +41,7 @@ const tutorials = [
     description: "Go beyond basic prompts. Learn chaining, few-shot examples, structured output, and error recovery patterns for AI nodes in n8n.",
     time: "15 min",
     level: "Intermediate",
+    href: "#",
     coming: true,
   },
   {
@@ -44,6 +49,7 @@ const tutorials = [
     description: "Use n8n + Claude to automatically score and qualify leads based on your ICP. Includes webhook capture, enrichment, and CRM push.",
     time: "20 min",
     level: "Advanced",
+    href: "#",
     coming: true,
   },
 ];
@@ -62,9 +68,10 @@ export default function TutorialsPage() {
 
       <div className="space-y-4">
         {tutorials.map((t, i) => (
-          <div
+          <a
             key={i}
-            className={`bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-turtle-700 transition ${t.coming ? 'opacity-60' : ''}`}
+            href={t.coming ? undefined : t.href}
+            className={`block bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-turtle-700 transition ${t.coming ? 'opacity-60 cursor-default' : ''}`}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
@@ -83,12 +90,12 @@ export default function TutorialsPage() {
                 <p className="text-gray-400 leading-relaxed">{t.description}</p>
               </div>
               {!t.coming && (
-                <button className="shrink-0 bg-turtle-600 hover:bg-turtle-500 text-white px-5 py-2.5 rounded-lg font-medium transition mt-2">
+                <span className="shrink-0 bg-turtle-600 hover:bg-turtle-500 text-white px-5 py-2.5 rounded-lg font-medium transition mt-2">
                   Read →
-                </button>
+                </span>
               )}
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </div>
