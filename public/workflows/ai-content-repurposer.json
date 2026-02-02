@@ -1,0 +1,113 @@
+{
+  "name": "AI Content Repurposer — TurtleTools",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url",
+              "name": "url",
+              "value": "https://example.com/your-blog-post",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-input",
+      "name": "Set Blog URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "fetch-blog",
+      "name": "Fetch Blog Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENROUTER_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"anthropic/claude-sonnet-4-20250514\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a content repurposing expert. Given a blog post, create THREE versions:\\n\\n1. **TWITTER THREAD** (5-7 tweets, each under 280 chars, numbered, hook in tweet 1)\\n2. **LINKEDIN POST** (professional tone, 150-200 words, strong hook, end with question)\\n3. **EMAIL NEWSLETTER BLURB** (casual, 100 words, one key insight, CTA to read full post)\\n\\nReturn as JSON with keys: twitter_thread (array), linkedin_post (string), email_blurb (string)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Repurpose this blog post:\\n\\n{{ $json.data }}\"\n    }\n  ],\n  \"max_tokens\": 2000,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "ai-repurpose",
+      "name": "AI Repurpose Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "content",
+              "name": "repurposed",
+              "value": "={{ JSON.parse($json.choices[0].message.content) }}",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "id": "extract-result",
+      "name": "Extract Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1040, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Set Blog URL", "type": "main", "index": 0 }]]
+    },
+    "Set Blog URL": {
+      "main": [[{ "node": "Fetch Blog Content", "type": "main", "index": 0 }]]
+    },
+    "Fetch Blog Content": {
+      "main": [[{ "node": "AI Repurpose Content", "type": "main", "index": 0 }]]
+    },
+    "AI Repurpose Content": {
+      "main": [[{ "node": "Extract Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateId": "turtletools-ai-content-repurposer",
+    "instanceId": "turtletools"
+  }
+}
