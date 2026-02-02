@@ -5,6 +5,22 @@ export const metadata = {
 
 const posts = [
   {
+    title: "What is Vibe Marketing? Complete Guide for 2026",
+    description: "One marketer doing the work of five using AI and automation. Tools, workflows, examples, and how to get started.",
+    date: "Feb 2, 2026",
+    readTime: "8 min",
+    href: "/blog/what-is-vibe-marketing",
+    tags: ["Vibe Marketing", "AI", "Strategy"],
+  },
+  {
+    title: "n8n vs Zapier for AI Automation: Honest Comparison (2026)",
+    description: "Detailed comparison of n8n and Zapier for AI workflows. Pricing, MCP support, self-hosting, and when to use each.",
+    date: "Feb 2, 2026",
+    readTime: "10 min",
+    href: "/blog/n8n-vs-zapier-ai",
+    tags: ["n8n", "Zapier", "Comparison"],
+  },
+  {
     title: "How to Connect Claude to n8n via OpenRouter (2026 Guide)",
     description: "The complete guide to using Claude in your n8n workflows. Setup, prompting patterns, error handling, and a free starter workflow.",
     date: "Feb 2, 2026",

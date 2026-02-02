@@ -1,0 +1,92 @@
+{
+  "name": "Competitor Intelligence Monitor — TurtleTools",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 24 }] }
+      },
+      "id": "daily-trigger",
+      "name": "Daily Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "competitors",
+              "name": "competitors",
+              "value": "[\"https://competitor1.com\", \"https://competitor2.com\"]",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-competitors",
+      "name": "Set Competitor URLs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.competitors }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      },
+      "id": "fetch-sites",
+      "name": "Fetch Competitor Sites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_KEY" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"anthropic/claude-sonnet-4-20250514\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a competitive intelligence analyst. Given website content from competitors, create a brief daily intelligence report covering:\\n1. New features or product changes\\n2. Pricing changes\\n3. New content or blog posts\\n4. Messaging changes\\n5. Key takeaways and recommended actions\\n\\nBe concise. Focus on what changed, not what stayed the same. Return as JSON with keys: changes (array of {type, detail}), takeaways (array), actions (array)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze these competitor websites for changes:\\n\\n{{ $json.data }}\"\n    }\n  ],\n  \"max_tokens\": 1500,\n  \"response_format\": { \"type\": \"json_object\" }\n}"
+      },
+      "id": "ai-analyze",
+      "name": "AI Competitive Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "report",
+              "name": "report",
+              "value": "={{ JSON.parse($json.choices[0].message.content) }}",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "id": "extract-report",
+      "name": "Extract Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1040, 300]
+    }
+  ],
+  "connections": {
+    "Daily Check": { "main": [[{ "node": "Set Competitor URLs", "type": "main", "index": 0 }]] },
+    "Set Competitor URLs": { "main": [[{ "node": "Fetch Competitor Sites", "type": "main", "index": 0 }]] },
+    "Fetch Competitor Sites": { "main": [[{ "node": "AI Competitive Analysis", "type": "main", "index": 0 }]] },
+    "AI Competitive Analysis": { "main": [[{ "node": "Extract Report", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateId": "turtletools-competitor-monitor", "instanceId": "turtletools" }
+}
