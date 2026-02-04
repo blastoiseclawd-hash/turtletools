@@ -1,0 +1,372 @@
+{
+  "name": "Reply Guy - Comprehensive 3-Tier Scoring",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 2 }]
+        }
+      },
+      "id": "schedule",
+      "name": "Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "queries",
+              "name": "search_queries",
+              "value": "=[\"n8n OR workflow automation -is:retweet\", \"zapier alternative OR make.com -is:retweet\", \"AI automation OR AI agents -is:retweet -crypto\", \"no code OR low code automation -is:retweet\", \"solopreneur automation OR productivity -is:retweet\", \"small business tech OR automation -is:retweet\", \"building in public update OR milestone -is:retweet\", \"productivity tool OR workflow -is:retweet\", \"contractor OR construction software -is:retweet\", \"HVAC OR plumbing business -is:retweet\"]",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "load-queries",
+      "name": "Load Search Queries (10 Rotation)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-queries",
+      "name": "Split to Individual Queries",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "command": "cd /home/ubuntu/.openclaw/workspace && node skills/x-client/x.js search \"={{ $json.search_queries[$index] }}\" --count 10",
+        "options": {}
+      },
+      "id": "search-x",
+      "name": "Search X API",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse X search output to structured JSON\nconst output = $input.first().json.stdout;\nconst lines = output.split('\\n');\n\nconst tweets = [];\nlet current = null;\n\nfor (const line of lines) {\n  const headerMatch = line.match(/^(\\d+)\\. @(\\w+) \\((\\d{4}-\\d{2}-\\d{2})\\)/);\n  if (headerMatch) {\n    if (current) tweets.push(current);\n    current = {\n      author: headerMatch[2],\n      date: headerMatch[3],\n      text: '',\n      likes: 0,\n      retweets: 0,\n      replies: 0,\n      id: ''\n    };\n    continue;\n  }\n  \n  const metricsMatch = line.match(/❤️ (\\d+) \\| 🔁 (\\d+) \\| 💬 (\\d+)/);\n  if (metricsMatch && current) {\n    current.likes = parseInt(metricsMatch[1]);\n    current.retweets = parseInt(metricsMatch[2]);\n    current.replies = parseInt(metricsMatch[3]);\n    continue;\n  }\n  \n  const urlMatch = line.match(/https:\\/\\/x\\.com\\/\\w+\\/status\\/(\\d+)/);\n  if (urlMatch && current) {\n    current.id = urlMatch[1];\n    continue;\n  }\n  \n  if (current && line.trim() && !line.includes('http')) {\n    current.text += line.trim() + ' ';\n  }\n}\n\nif (current) tweets.push(current);\n\nreturn tweets.map(t => ({ json: t }));"
+      },
+      "id": "parse-tweets",
+      "name": "Parse to JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "command": "cd /home/ubuntu/.openclaw/workspace && node skills/x-client/x.js user {{ $json.author }}",
+        "options": {}
+      },
+      "id": "fetch-profile",
+      "name": "Fetch Profile Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TIER 1: Profile Quality Score (0-100)\nconst profile = $input.first().json.stdout;\n\n// Parse profile data\nconst followersMatch = profile.match(/Followers: ([\\d,]+)/);\nconst followingMatch = profile.match(/Following: ([\\d,]+)/);\nconst createdMatch = profile.match(/Created: (\\d{4})/);\nconst bioMatch = profile.match(/Bio: (.+)/);\nconst verifiedMatch = profile.match(/Verified: (true|false)/);\n\nconst followers = followersMatch ? parseInt(followersMatch[1].replace(/,/g, '')) : 0;\nconst following = followingMatch ? parseInt(followingMatch[1].replace(/,/g, '')) : 1;\nconst yearCreated = createdMatch ? parseInt(createdMatch[1]) : new Date().getFullYear();\nconst bio = bioMatch ? bioMatch[1] : '';\nconst verified = verifiedMatch ? verifiedMatch[1] === 'true' : false;\n\nconst accountAge = new Date().getFullYear() - yearCreated;\nconst ratio = followers / following;\n\n// SCORING\nlet score = 0;\n\n// 1. Follower Quality (25pts)\nif (ratio >= 3.0) score += 25;\nelse if (ratio >= 1.5) score += 20;\nelse if (ratio >= 0.5) score += 15;\nelse score += 5;\n\n// 2. Engagement Rate (25pts) - estimate from current tweet\nconst engagement = ($json.likes + $json.retweets) / Math.max(followers, 1) * 100;\nif (engagement >= 1.0) score += 25;\nelse if (engagement >= 0.5) score += 20;\nelse if (engagement >= 0.2) score += 15;\nelse score += 5;\n\n// 3. Account Age (15pts)\nif (accountAge >= 5) score += 15;\nelse if (accountAge >= 2) score += 12;\nelse if (accountAge >= 1) score += 8;\nelse score += 3;\n\n// 4. Posting Frequency (15pts) - estimate from recent activity\n// Assume moderate if we found them in search\nscore += 12;\n\n// 5. Verification/Authority (10pts)\nif (verified) score += 10;\nelse if (followers >= 10000) score += 8;\nelse if (followers >= 5000) score += 5;\nelse score += 2;\n\n// 6. Bio Quality (10pts)\nlet bioScore = 0;\nif (bio.includes('http')) bioScore += 4;\nif (bio.length > 50) bioScore += 2;\nif (bio.match(/(automation|AI|tech|business|founder|developer)/i)) bioScore += 4;\nscore += bioScore;\n\nreturn [{\n  json: {\n    ...$json,\n    profile_score: score,\n    profile_data: {\n      followers,\n      following,\n      ratio,\n      accountAge,\n      verified,\n      bio\n    }\n  }\n}];"
+      },
+      "id": "score-profile",
+      "name": "Score Profile (Tier 1)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.profile_score }}",
+              "operation": "largerEqual",
+              "value2": 60
+            }
+          ]
+        }
+      },
+      "id": "filter-profile",
+      "name": "Profile ≥ 60?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1650, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TIER 2: Tweet Quality Score (0-100)\nconst tweet = $json;\n\n// Calculate hours since posted\nconst postedDate = new Date(tweet.date);\nconst now = new Date();\nconst hoursOld = (now - postedDate) / (1000 * 60 * 60);\n\nlet score = 0;\n\n// 1. Engagement Velocity (30pts)\nconst velocity = (tweet.likes + tweet.retweets) / Math.max(hoursOld, 1);\nif (velocity >= 5) score += 30;\nelse if (velocity >= 2) score += 25;\nelse if (velocity >= 1) score += 20;\nelse if (velocity >= 0.5) score += 15;\nelse score += 5;\n\n// 2. Content Substance (25pts)\nconst length = tweet.text.length;\nif (length >= 100 && length <= 280) score += 25;\nelse if (length >= 50) score += 15;\nelse score += 5;\n\nif (tweet.text.match(/https?:\\/\\//)) score += 5; // Has URL/image\n\n// 3. Topic Relevance (20pts)\nconst keywords = {\n  high: /(automation|n8n|zapier|AI agent|workflow|no.?code)/i,\n  medium: /(business|productivity|tech|tool|saas)/i,\n  low: /(solopreneur|founder|building|startup)/i\n};\n\nif (keywords.high.test(tweet.text)) score += 20;\nelse if (keywords.medium.test(tweet.text)) score += 15;\nelse if (keywords.low.test(tweet.text)) score += 10;\nelse score += 5;\n\n// 4. Conversation Potential (15pts)\nif (tweet.text.includes('?')) score += 15; // Asks question\nelse if (tweet.text.match(/(learned|built|shipped|just|finally)/i)) score += 12; // Shares result\nelse if (tweet.text.match(/(think|believe|consider|suggest)/i)) score += 10; // Shares insight\nelse score += 5;\n\n// 5. Recency (10pts)\nif (hoursOld < 2) score += 10;\nelse if (hoursOld < 6) score += 8;\nelse if (hoursOld < 12) score += 5;\nelse score += 2;\n\nreturn [{\n  json: {\n    ...tweet,\n    tweet_score: score,\n    hours_old: hoursOld,\n    engagement_velocity: velocity\n  }\n}];"
+      },
+      "id": "score-tweet",
+      "name": "Score Tweet (Tier 2)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.tweet_score }}",
+              "operation": "largerEqual",
+              "value2": 65
+            }
+          ]
+        }
+      },
+      "id": "filter-tweet",
+      "name": "Tweet ≥ 65?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2050, 320]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "attempt", "name": "attempt", "value": "1", "type": "number" },
+            { "id": "max_attempts", "name": "max_attempts", "value": "5", "type": "number" }
+          ]
+        }
+      },
+      "id": "init-retry",
+      "name": "Init Retry Loop",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2250, 240]
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "anthropic/claude-3.5-haiku"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"user\", \"content\": \"ROLE: Professional copywriter with Anthony Bourdain's directness + David Sedaris's self-deprecation. You learned everything the hard way.\\n\\nGOAL: Reply to this X post adding real value.\\n\\nRULES:\\n- 150-280 characters\\n- End with statement/insight — NO QUESTIONS\\n- Include specific detail (number, tool, concrete example)\\n- Reference their tweet specifically\\n- Direct + self-deprecating + substantive\\n- NO hashtags, NO emojis (maybe one if perfect)\\n- NO AI slop: 'game-changer', 'dive into', 'unleash', 'leverage'\\n- Share personal failure/lesson\\n- VARY OPENINGS WILDLY\\n- If nothing valuable to add, say SKIP\\n\\nORIGINAL POST by @{{ $json.author }}:\\n{{ $json.text }}\\n\\nYOUR REPLY:\"}]"
+            },
+            {
+              "name": "max_tokens",
+              "value": "200"
+            },
+            {
+              "name": "temperature",
+              "value": "0.9"
+            }
+          ]
+        }
+      },
+      "id": "generate-reply",
+      "name": "Generate Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2450, 240],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "openrouter",
+          "name": "OpenRouter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst text = response.choices?.[0]?.message?.content?.trim() || '';\nconst cleaned = text.replace(/^[\"']|[\"']$/g, '').trim();\n\nreturn [{\n  json: {\n    ...items[0].json,\n    reply_text: cleaned,\n    should_skip: cleaned.toUpperCase().includes('SKIP') || cleaned.length > 280 || cleaned.length < 50\n  }\n}];"
+      },
+      "id": "extract-reply",
+      "name": "Extract Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2650, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.should_skip }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "check-skip",
+      "name": "Valid Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2850, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TIER 3: Reply Quality Score (0-100)\nconst reply = $json.reply_text;\nconst originalTweet = $json.text;\n\nlet score = 0;\n\n// 1. Substance (30pts)\nconst length = reply.length;\nif (length >= 150 && length <= 280) score += 30;\nelse if (length >= 100) score += 20;\nelse score += 10;\n\n// Bonus for specific details\nif (reply.match(/\\d+/)) score += 5; // Has number\nif (reply.match(/(n8n|zapier|claude|gpt|cursor|make|airtable)/i)) score += 5; // Tool name\nif (reply.match(/(spent|burned|crashed|failed|learned)/i)) score += 5; // Personal story\n\n// 2. Authenticity (25pts)\nconst aiSlop = ['game-changer', 'dive into', 'unleash', 'leverage', 'transform', 'revolutionary', 'incredible', 'amazing'];\nlet slopCount = 0;\naiSlop.forEach(phrase => {\n  if (reply.toLowerCase().includes(phrase)) slopCount++;\n});\n\nif (slopCount === 0) score += 25;\nelse if (slopCount === 1) score += 15;\nelse score += 5;\n\n// 3. Context Match (20pts)\nconst tweetWords = originalTweet.toLowerCase().split(/\\s+/).filter(w => w.length > 4);\nconst replyWords = reply.toLowerCase().split(/\\s+/);\nconst matches = tweetWords.filter(w => replyWords.includes(w));\n\nif (matches.length >= 3) score += 20;\nelse if (matches.length >= 2) score += 15;\nelse if (matches.length >= 1) score += 10;\nelse score += 0;\n\n// 4. Engagement Hook (15pts)\nconst endsWithPunctuation = /[.!]$/.test(reply);\nconst hasInsight = reply.match(/(truth|real|brutal|learned|turns out|realized)/i);\nconst noQuestion = !reply.includes('?');\n\nif (endsWithPunctuation && hasInsight && noQuestion) score += 15;\nelse if (endsWithPunctuation && noQuestion) score += 10;\nelse if (noQuestion) score += 5;\nelse score += 0;\n\n// 5. Voice Consistency (10pts)\nconst bourdain = reply.match(/(brutal|real|bullshit|truth|respect|craft)/i);\nconst sedaris = reply.match(/(failed|crashed|learned|mess|disaster|spectacular)/i);\n\nif (bourdain && sedaris) score += 10;\nelse if (bourdain || sedaris) score += 6;\nelse score += 3;\n\nreturn [{\n  json: {\n    ...$json,\n    reply_score: score\n  }\n}];"
+      },
+      "id": "score-reply",
+      "name": "Score Reply (Tier 3)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3050, 160]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.reply_score }}",
+              "operation": "largerEqual",
+              "value2": 60
+            }
+          ]
+        }
+      },
+      "id": "check-quality",
+      "name": "Reply ≥ 60?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3250, 160]
+    },
+    {
+      "parameters": {
+        "command": "cd /home/ubuntu/.openclaw/workspace && node skills/x-client/x.js reply {{ $json.id }} '{{ $json.reply_text }}'",
+        "options": {}
+      },
+      "id": "post-reply",
+      "name": "Post to X",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3450, 80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.attempt }}",
+              "operation": "smaller",
+              "value2": "={{ $json.max_attempts }}"
+            }
+          ]
+        }
+      },
+      "id": "check-retry",
+      "name": "Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3450, 240]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "attempt",
+              "name": "attempt",
+              "value": "={{ $json.attempt + 1 }}",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "increment",
+      "name": "Increment Attempt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [3650, 200]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [3850, 200]
+    }
+  ],
+  "connections": {
+    "schedule": {
+      "main": [[{"node": "load-queries", "type": "main", "index": 0}]]
+    },
+    "load-queries": {
+      "main": [[{"node": "split-queries", "type": "main", "index": 0}]]
+    },
+    "split-queries": {
+      "main": [[{"node": "search-x", "type": "main", "index": 0}]]
+    },
+    "search-x": {
+      "main": [[{"node": "parse-tweets", "type": "main", "index": 0}]]
+    },
+    "parse-tweets": {
+      "main": [[{"node": "fetch-profile", "type": "main", "index": 0}]]
+    },
+    "fetch-profile": {
+      "main": [[{"node": "score-profile", "type": "main", "index": 0}]]
+    },
+    "score-profile": {
+      "main": [[{"node": "filter-profile", "type": "main", "index": 0}]]
+    },
+    "filter-profile": {
+      "main": [[{"node": "score-tweet", "type": "main", "index": 0}]]
+    },
+    "score-tweet": {
+      "main": [[{"node": "filter-tweet", "type": "main", "index": 0}]]
+    },
+    "filter-tweet": {
+      "main": [[{"node": "init-retry", "type": "main", "index": 0}]]
+    },
+    "init-retry": {
+      "main": [[{"node": "generate-reply", "type": "main", "index": 0}]]
+    },
+    "generate-reply": {
+      "main": [[{"node": "extract-reply", "type": "main", "index": 0}]]
+    },
+    "extract-reply": {
+      "main": [[{"node": "check-skip", "type": "main", "index": 0}]]
+    },
+    "check-skip": {
+      "main": [[{"node": "score-reply", "type": "main", "index": 0}]]
+    },
+    "score-reply": {
+      "main": [[{"node": "check-quality", "type": "main", "index": 0}]]
+    },
+    "check-quality": {
+      "main": [
+        [{"node": "post-reply", "type": "main", "index": 0}],
+        [{"node": "check-retry", "type": "main", "index": 0}]
+      ]
+    },
+    "check-retry": {
+      "main": [[{"node": "increment", "type": "main", "index": 0}]]
+    },
+    "increment": {
+      "main": [[{"node": "wait", "type": "main", "index": 0}]]
+    },
+    "wait": {
+      "main": [[{"node": "generate-reply", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCreatedBy": "Blastoise",
+    "description": "Comprehensive 3-tier scoring: Profile (≥60) → Tweet (≥65) → Reply (≥60) with retry loop"
+  }
+}
