@@ -120,25 +120,4 @@ export const templates: Template[] = [
     tags: ['email', 'sequences', 'personalization'],
     featured: false,
   },
-  {
-    id: 'ai-email-responder',
-    title: 'AI Email Reply Agent',
-    description: 'Automatically reply to emails with AI while maintaining conversation context and history.',
-    longDescription: `Perfect for sales outreach, support, or any email workflow that needs intelligent, contextual replies. This workflow:
-    
-- Monitors Gmail for new emails
-- Fetches conversation history from your database  
-- Generates personalized AI replies using GPT-4o
-- Sends replies in the same thread
-- Saves conversation for future context
-
-Works with Redis or easily swap to Supabase/Postgres. The conversation memory pattern is the key - it's what makes AI responses feel natural across multiple exchanges.`,
-    category: 'Email',
-    price: 0,
-    difficulty: 'intermediate',
-    tools: ['n8n', 'OpenAI', 'Gmail', 'Redis'],
-    nodes: 5,
-    tags: ['email', 'ai-agent', 'sales', 'automation', 'memory'],
-    featured: true,
-  },
 ];

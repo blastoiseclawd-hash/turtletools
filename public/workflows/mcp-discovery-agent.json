@@ -1,0 +1,51 @@
+{
+  "name": "MCP Tool Discovery Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "mcp-server-trigger",
+        "toolName": "list_available_tools",
+        "toolDescription": "Returns a list of all available MCP tools with their names, descriptions, and required parameters. Use this when the user asks what tools or capabilities are available."
+      },
+      "name": "MCP Server Trigger",
+      "type": "n8n-nodes-base.mcpTrigger",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "prompt": "You are a tool discovery assistant. Given the list of available MCP tools, categorize them by purpose (data retrieval, content creation, communication, analysis) and suggest which combinations would be most useful for the user's stated goal.\n\nAvailable tools:\n{{ $json.tools }}\n\nUser's goal: {{ $json.userGoal }}\n\nRespond with:\n1. Recommended tools for this goal\n2. Suggested execution order\n3. Any tools that could be chained together"
+      },
+      "name": "AI Analysis",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "respond",
+        "responseBody": "={{ $json.text }}"
+      },
+      "name": "Respond to MCP Client",
+      "type": "n8n-nodes-base.respondToMcp",
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "MCP Server Trigger": {
+      "main": [
+        [{ "node": "AI Analysis", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Analysis": {
+      "main": [
+        [{ "node": "Respond to MCP Client", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "meta": {
+    "description": "An MCP-enabled workflow that helps AI agents discover and understand available tools. When connected via MCP, the agent can ask what tools are available and get intelligent suggestions for tool combinations based on their goal.",
+    "category": "MCP",
+    "difficulty": "intermediate",
+    "author": "TurtleTools"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "name": "AI Intent Router — Classify & Route User Messages",
+  "meta": {
+    "description": "Routes incoming messages to the right workflow based on AI-classified intent. Uses OpenAI/Claude to understand what the user wants, then triggers the appropriate handler. Supports: customer support, sales inquiries, feedback, and custom intents.",
+    "author": "TurtleTools",
+    "version": "1.0.0",
+    "tags": ["ai", "routing", "chatbot", "intent-classification", "n8n"],
+    "templateId": "ai-intent-router"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intent-router",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook — Receive Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "intent-router"
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.OPENROUTER_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={\n  \"model\": \"anthropic/claude-sonnet-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an intent classifier. Given a user message, classify it into EXACTLY ONE of these intents:\\n\\n1. SUPPORT - Technical help, bug reports, how-to questions\\n2. SALES - Pricing questions, feature comparisons, purchase intent\\n3. FEEDBACK - Suggestions, complaints, praise, reviews\\n4. GENERAL - Greetings, off-topic, unclear intent\\n\\nRespond with ONLY the intent label (e.g., SUPPORT). Nothing else.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.body.message }}\"\n    }\n  ],\n  \"max_tokens\": 10\n}",
+        "options": { "timeout": 10000 }
+      },
+      "name": "AI — Classify Intent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the intent from AI response\nconst response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || 'GENERAL';\nconst intent = content.trim().toUpperCase();\n\n// Validate it's a known intent\nconst validIntents = ['SUPPORT', 'SALES', 'FEEDBACK', 'GENERAL'];\nconst classified = validIntents.includes(intent) ? intent : 'GENERAL';\n\nreturn [{\n  json: {\n    intent: classified,\n    originalMessage: $('Webhook — Receive Message').first().json.body.message,\n    confidence: response.choices?.[0]?.finish_reason === 'stop' ? 'high' : 'low',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Extract Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            { "outputKey": "SUPPORT", "conditions": { "conditions": [{ "leftValue": "={{ $json.intent }}", "rightValue": "SUPPORT", "operator": { "type": "string", "operation": "equals" } }] } },
+            { "outputKey": "SALES", "conditions": { "conditions": [{ "leftValue": "={{ $json.intent }}", "rightValue": "SALES", "operator": { "type": "string", "operation": "equals" } }] } },
+            { "outputKey": "FEEDBACK", "conditions": { "conditions": [{ "leftValue": "={{ $json.intent }}", "rightValue": "FEEDBACK", "operator": { "type": "string", "operation": "equals" } }] } }
+          ],
+          "fallbackOutput": "extra"
+        }
+      },
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'routed', intent: $json.intent, handler: 'support', message: 'Ticket created. Our team will respond within 2 hours.', originalMessage: $json.originalMessage }) }}"
+      },
+      "name": "Handle Support",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1130, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'routed', intent: $json.intent, handler: 'sales', message: 'Thanks for your interest! A sales rep will follow up shortly.', originalMessage: $json.originalMessage }) }}"
+      },
+      "name": "Handle Sales",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1130, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'routed', intent: $json.intent, handler: 'feedback', message: 'Thank you for your feedback! We review every submission.', originalMessage: $json.originalMessage }) }}"
+      },
+      "name": "Handle Feedback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1130, 460]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'routed', intent: $json.intent || 'GENERAL', handler: 'general', message: 'Thanks for reaching out! How can we help?', originalMessage: $json.originalMessage }) }}"
+      },
+      "name": "Handle General",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1130, 620]
+    }
+  ],
+  "connections": {
+    "Webhook — Receive Message": { "main": [[{ "node": "AI — Classify Intent", "type": "main", "index": 0 }]] },
+    "AI — Classify Intent": { "main": [[{ "node": "Extract Intent", "type": "main", "index": 0 }]] },
+    "Extract Intent": { "main": [[{ "node": "Route by Intent", "type": "main", "index": 0 }]] },
+    "Route by Intent": {
+      "main": [
+        [{ "node": "Handle Support", "type": "main", "index": 0 }],
+        [{ "node": "Handle Sales", "type": "main", "index": 0 }],
+        [{ "node": "Handle Feedback", "type": "main", "index": 0 }],
+        [{ "node": "Handle General", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,86 @@
+{
+  "name": "AI Email Reply Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [{ "mode": "everyMinute", "minute": 5 }]
+        },
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "id": "gmail-trigger",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "getValue",
+        "key": "={{ $json.threadId }}"
+      },
+      "id": "get-history",
+      "name": "Get Conversation History",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [220, 0],
+      "notes": "Replace with Supabase or your preferred database"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "systemPrompt": "You are a helpful sales assistant responding to prospect emails. Use the conversation history to maintain context. Be professional, helpful, and personalized.",
+        "prompt": "=Previous conversation:\n{{ $('Get Conversation History').item.json.history || 'No previous history' }}\n\nNew email from {{ $('Gmail Trigger').item.json.from }}:\n{{ $('Gmail Trigger').item.json.text }}\n\nGenerate a helpful, personalized reply."
+      },
+      "id": "ai-agent",
+      "name": "AI Generate Reply",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Gmail Trigger').item.json.from }}",
+        "subject": "=Re: {{ $('Gmail Trigger').item.json.subject }}",
+        "message": "={{ $('AI Generate Reply').item.json.text }}",
+        "options": {
+          "threadId": "={{ $('Gmail Trigger').item.json.threadId }}"
+        }
+      },
+      "id": "send-reply",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "operation": "setValue",
+        "key": "={{ $('Gmail Trigger').item.json.threadId }}",
+        "value": "={{ JSON.stringify({ history: ($('Get Conversation History').item.json.history || '') + '\\n\\nProspect: ' + $('Gmail Trigger').item.json.text + '\\n\\nYou: ' + $('AI Generate Reply').item.json.text }) }}"
+      },
+      "id": "save-history",
+      "name": "Save Conversation History",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [880, 0],
+      "notes": "Replace with Supabase or your preferred database"
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": { "main": [[{ "node": "Get Conversation History", "type": "main", "index": 0 }]] },
+    "Get Conversation History": { "main": [[{ "node": "AI Generate Reply", "type": "main", "index": 0 }]] },
+    "AI Generate Reply": { "main": [[{ "node": "Send Reply", "type": "main", "index": 0 }]] },
+    "Send Reply": { "main": [[{ "node": "Save Conversation History", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "AI-powered email responder with conversation memory. Perfect for sales outreach and support automation.",
+    "author": "TurtleTools",
+    "version": "1.0.0"
+  }
+}

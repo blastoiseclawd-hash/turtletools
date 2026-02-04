@@ -11,8 +11,7 @@ const tutorials = [
     level: "Beginner",
     href: "/tutorials/getting-started-n8n-claude",
     coming: false,
-    gradient: "from-emerald-900 via-green-900 to-gray-900",
-    icon: "🚀",
+    image: "/images/tutorial-getting-started.png",
   },
   {
     title: "What is MCP and Why It Matters for n8n",
@@ -21,8 +20,7 @@ const tutorials = [
     level: "Beginner",
     href: "/tutorials/what-is-mcp",
     coming: false,
-    gradient: "from-blue-900 via-cyan-900 to-gray-900",
-    icon: "🔗",
+    image: "/images/tutorial-mcp.png",
   },
   {
     title: "Build a Vibe Marketing Stack from Scratch",
@@ -31,8 +29,7 @@ const tutorials = [
     level: "Intermediate",
     href: "/tutorials/vibe-marketing-stack",
     coming: false,
-    gradient: "from-purple-900 via-violet-900 to-gray-900",
-    icon: "📡",
+    image: "/images/tutorial-marketing.png",
   },
   {
     title: "n8n MCP Server: Connect AI Agents to Workflows",
@@ -41,8 +38,7 @@ const tutorials = [
     level: "Advanced",
     href: "#",
     coming: true,
-    gradient: "from-red-900 via-rose-900 to-gray-900",
-    icon: "🧠",
+    image: "/images/template-mcp.png",
   },
   {
     title: "Advanced Prompting Patterns for n8n AI Nodes",
@@ -51,8 +47,7 @@ const tutorials = [
     level: "Intermediate",
     href: "#",
     coming: true,
-    gradient: "from-amber-900 via-yellow-900 to-gray-900",
-    icon: "💬",
+    image: "/images/blog-mcp-setup.png",
   },
   {
     title: "Building a Lead Scoring Engine with AI",
@@ -61,24 +56,21 @@ const tutorials = [
     level: "Advanced",
     href: "#",
     coming: true,
-    gradient: "from-teal-900 via-emerald-900 to-gray-900",
-    icon: "🎯",
+    image: "/images/template-sales.png",
   },
 ];
 
 const levelColors: Record<string, string> = {
-  Beginner: "bg-green-950 text-green-300 border-green-800",
-  Intermediate: "bg-yellow-950 text-yellow-300 border-yellow-800",
-  Advanced: "bg-red-950 text-red-300 border-red-800",
+  Beginner: "bg-green-500/20 text-green-300 border-green-500/30",
+  Intermediate: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+  Advanced: "bg-red-500/20 text-red-300 border-red-500/30",
 };
 
 export default function TutorialsPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">
       <div className="text-center mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Tutorials
-        </h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Tutorials</h1>
         <p className="text-xl text-gray-400 max-w-2xl mx-auto">
           Learn to build AI-powered automation with n8n. Free, step-by-step, no fluff.
         </p>
@@ -89,30 +81,32 @@ export default function TutorialsPage() {
           <a
             key={i}
             href={t.coming ? undefined : t.href}
-            className={`group block bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-turtle-700 transition ${t.coming ? 'opacity-50 cursor-default' : ''}`}
+            className={`group block bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-turtle-700 transition ${t.coming ? "opacity-50 cursor-default" : ""}`}
           >
-            {/* Image area */}
-            <div className={`h-40 bg-gradient-to-br ${t.gradient} relative flex items-center justify-center overflow-hidden`}>
-              <span className="text-5xl opacity-30 group-hover:opacity-50 transition-opacity">{t.icon}</span>
+            <div className="h-40 overflow-hidden relative">
+              <img
+                src={t.image}
+                alt={t.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
               {t.coming && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white/80 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white/90 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
                     Coming Soon
                   </span>
                 </div>
               )}
               <div className="absolute top-3 left-3">
-                <span className={`text-xs px-2 py-1 rounded-full border ${levelColors[t.level]}`}>
+                <span className={`text-xs px-2 py-1 rounded-full border backdrop-blur-sm ${levelColors[t.level]}`}>
                   {t.level}
                 </span>
               </div>
               <div className="absolute top-3 right-3">
-                <span className="text-xs bg-black/40 text-white/70 px-2 py-1 rounded backdrop-blur-sm">
+                <span className="text-xs bg-black/60 text-white/70 px-2 py-1 rounded backdrop-blur-sm">
                   ⏱ {t.time}
                 </span>
               </div>
             </div>
-            {/* Content */}
             <div className="p-5">
               <h2 className="text-lg font-bold text-white mb-2 group-hover:text-turtle-400 transition">{t.title}</h2>
               <p className="text-gray-400 text-sm leading-relaxed">{t.description}</p>

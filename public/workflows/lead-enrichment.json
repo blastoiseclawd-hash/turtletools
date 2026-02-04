@@ -1,5 +1,5 @@
 {
-  "name": "Lead Enrichment Pipeline — TurtleTools",
+  "name": "Lead Enrichment Pipeline \u2014 TurtleTools",
   "nodes": [
     {
       "parameters": {
@@ -12,7 +12,10 @@
       "name": "New Lead Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -20,7 +23,10 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Api-Key", "value": "YOUR_APOLLO_KEY" }
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_APOLLO_KEY"
+            }
           ]
         }
       },
@@ -28,7 +34,10 @@
       "name": "Apollo Enrichment",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 300]
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
@@ -37,18 +46,29 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_KEY" }
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENROUTER_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"anthropic/claude-sonnet-4-20250514\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a lead scoring expert. Given enriched lead data, score this lead 1-100 based on:\\n- Company size (larger = higher)\\n- Industry fit (tech/SaaS = higher)\\n- Seniority (C-suite/VP = higher)\\n- Company funding stage (funded = higher)\\n\\nReturn JSON with: score (number), reasoning (string), tier (hot/warm/cold), recommended_action (string)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Score this lead:\\nEmail: {{ $json.body.email }}\\nEnrichment data: {{ JSON.stringify($node['Apollo Enrichment'].json) }}\"\n    }\n  ],\n  \"max_tokens\": 500,\n  \"response_format\": { \"type\": \"json_object\" }\n}"
+        "contentType": "raw",
+        "body": "={\n  \"model\": \"anthropic/claude-sonnet-4-20250514\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a lead scoring expert. Given enriched lead data, score this lead 1-100 based on:\\n- Company size (larger = higher)\\n- Industry fit (tech/SaaS = higher)\\n- Seniority (C-suite/VP = higher)\\n- Company funding stage (funded = higher)\\n\\nReturn JSON with: score (number), reasoning (string), tier (hot/warm/cold), recommended_action (string)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Score this lead:\\nEmail: {{ $json.body.email }}\\nEnrichment data: {{ JSON.stringify($node['Apollo Enrichment'].json) }}\"\n    }\n  ],\n  \"max_tokens\": 500,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "specifyBody": "string"
       },
       "id": "ai-score",
       "name": "AI Lead Scoring",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [640, 300]
+      "position": [
+        640,
+        300
+      ]
     },
     {
       "parameters": {
@@ -67,7 +87,10 @@
       "name": "Parse Score",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [840, 300]
+      "position": [
+        840,
+        300
+      ]
     },
     {
       "parameters": {
@@ -78,15 +101,65 @@
       "name": "Return Score",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1040, 300]
+      "position": [
+        1040,
+        300
+      ]
     }
   ],
   "connections": {
-    "New Lead Webhook": { "main": [[{ "node": "Apollo Enrichment", "type": "main", "index": 0 }]] },
-    "Apollo Enrichment": { "main": [[{ "node": "AI Lead Scoring", "type": "main", "index": 0 }]] },
-    "AI Lead Scoring": { "main": [[{ "node": "Parse Score", "type": "main", "index": 0 }]] },
-    "Parse Score": { "main": [[{ "node": "Return Score", "type": "main", "index": 0 }]] }
+    "New Lead Webhook": {
+      "main": [
+        [
+          {
+            "node": "Apollo Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo Enrichment": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead Scoring": {
+      "main": [
+        [
+          {
+            "node": "Parse Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Score": {
+      "main": [
+        [
+          {
+            "node": "Return Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
-  "meta": { "templateId": "turtletools-lead-enrichment", "instanceId": "turtletools" }
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "End-to-end lead processing: capture from forms/webhooks, enrich with company data, score against your ICP, push qualified leads to CRM with summary.",
+    "category": "Sales",
+    "difficulty": "intermediate",
+    "author": "TurtleTools"
+  }
 }
