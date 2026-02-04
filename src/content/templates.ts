@@ -53,6 +53,19 @@ export const templates: Template[] = [
     tags: ['productivity', 'notion', 'webhooks'],
     featured: false,
   },
+  {
+    id: 'x-reply-guy-comprehensive',
+    title: 'X Reply Guy — 3-Tier Quality Filter',
+    description: 'Intelligent X/Twitter reply bot with profile scoring, tweet quality detection, and contextual AI responses.',
+    longDescription: `Professional reply bot that finds valuable conversations on X and adds genuine value. Three-tier quality filtering ensures you only engage with established creators on high-quality content. Profile scoring (follower ratio, engagement, authority), tweet scoring (velocity, substance, relevance), and reply quality gate (substance, authenticity, voice). Includes retry loop for consistent quality. Perfect for building audience and demonstrating expertise.`,
+    category: 'Marketing',
+    price: 0,
+    difficulty: 'intermediate',
+    tools: ['n8n', 'OpenRouter', 'X API'],
+    nodes: 20,
+    tags: ['social media', 'engagement', 'ai replies', 'twitter', 'x'],
+    featured: true,
+  },
 
   // PAID TEMPLATES
   {
