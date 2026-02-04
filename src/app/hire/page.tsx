@@ -77,7 +77,7 @@ export default function HirePage() {
 
         <div className="bg-gray-900 rounded-lg p-8">
           <h2 className="text-2xl font-bold mb-6">Request a Proposal</h2>
-          <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" className="space-y-6">
+          <form id="hireForm" className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium mb-2">Your Name *</label>
               <input
@@ -150,11 +150,11 @@ export default function HirePage() {
                 className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg focus:border-turtle-400 focus:outline-none"
               >
                 <option value="">Select range...</option>
-                <option value="under-500">Under $500</option>
-                <option value="500-1000">$500 - $1,000</option>
-                <option value="1000-2500">$1,000 - $2,500</option>
-                <option value="2500-5000">$2,500 - $5,000</option>
-                <option value="5000-plus">$5,000+</option>
+                <option value="under-500">Under $350 (30% off launch pricing)</option>
+                <option value="500-1000">$350 - $700 (30% off)</option>
+                <option value="1000-2500">$700 - $1,750 (30% off)</option>
+                <option value="2500-5000">$1,750 - $3,500 (30% off)</option>
+                <option value="5000-plus">$3,500+ (30% off)</option>
               </select>
             </div>
 
@@ -175,15 +175,62 @@ export default function HirePage() {
 
             <button
               type="submit"
-              className="w-full bg-turtle-400 text-black font-bold py-4 px-8 rounded-lg hover:bg-turtle-300 transition"
+              id="submitBtn"
+              className="w-full bg-turtle-400 text-black font-bold py-4 px-8 rounded-lg hover:bg-turtle-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Submit Request
             </button>
+
+            <div id="formMessage" className="hidden text-center p-4 rounded-lg"></div>
 
             <p className="text-sm text-gray-500 text-center">
               We'll respond within 24 hours with a detailed proposal.
             </p>
           </form>
+
+          <script dangerouslySetInnerHTML={{__html: `
+            document.getElementById('hireForm').addEventListener('submit', async (e) => {
+              e.preventDefault();
+              
+              const btn = document.getElementById('submitBtn');
+              const msg = document.getElementById('formMessage');
+              const form = e.target;
+              
+              btn.disabled = true;
+              btn.textContent = 'Submitting...';
+              msg.classList.add('hidden');
+              
+              const formData = new FormData(form);
+              const data = Object.fromEntries(formData.entries());
+              
+              try {
+                const res = await fetch('/api/hire', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(data)
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                  msg.textContent = result.message;
+                  msg.className = 'text-center p-4 rounded-lg bg-green-900/50 text-green-400 border border-green-700';
+                  msg.classList.remove('hidden');
+                  form.reset();
+                  btn.textContent = 'Submitted!';
+                } else {
+                  throw new Error(result.error || 'Submission failed');
+                }
+              } catch (err) {
+                msg.textContent = 'Error: ' + err.message + '. Please email us directly.';
+                msg.className = 'text-center p-4 rounded-lg bg-red-900/50 text-red-400 border border-red-700';
+                msg.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Submit Request';
+              }
+            });
+          `}} />
+        </div>
         </div>
 
         <div className="mt-12 text-center">
