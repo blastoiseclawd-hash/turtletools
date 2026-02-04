@@ -231,7 +231,6 @@ export default function HirePage() {
             });
           `}} />
         </div>
-        </div>
 
         <div className="mt-12 text-center">
           <p className="text-gray-400 mb-4">
