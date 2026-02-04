@@ -5,6 +5,7 @@ const links = [
   { href: "/templates/", label: "Templates" },
   { href: "/tutorials/", label: "Tutorials" },
   { href: "/blog/", label: "Blog" },
+  { href: "/hire/", label: "Hire Us", highlight: true },
 ];
 
 export default function Nav() {
@@ -22,20 +23,17 @@ export default function Nav() {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6 text-sm">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="text-gray-400 hover:text-white transition">
+            <a 
+              key={l.href} 
+              href={l.href} 
+              className={l.highlight 
+                ? "bg-turtle-600 hover:bg-turtle-500 text-white px-4 py-2 rounded-lg font-medium transition" 
+                : "text-gray-400 hover:text-white transition"
+              }
+            >
               {l.label}
             </a>
           ))}
-          <a
-            href="#subscribe"
-            className="bg-turtle-600 hover:bg-turtle-500 text-white px-4 py-2 rounded-lg font-medium transition"
-            onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            Subscribe Free
-          </a>
         </div>
 
         {/* Mobile hamburger */}
