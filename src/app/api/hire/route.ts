@@ -15,25 +15,38 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Save to JSON file (simple CRM)
+    // Save to CRM system
     const timestamp = Date.now();
     const fs = require('fs');
     const path = require('path');
     
-    const dataDir = '/home/ubuntu/.openclaw/workspace/data/client-inquiries';
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    
     const inquiry = {
       id: `web-${timestamp}`,
-      timestamp: new Date().toISOString(),
       source: 'website',
       ...data
     };
     
-    const filePath = path.join(dataDir, `${timestamp}-${data.email.replace('@', '-at-')}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(inquiry, null, 2));
+    // Write to temp file and process via CRM
+    const tempFile = `/tmp/inquiry-${timestamp}.json`;
+    fs.writeFileSync(tempFile, JSON.stringify(inquiry));
+    
+    try {
+      const { execSync } = require('child_process');
+      const script = `
+        const crm = require('/home/ubuntu/.openclaw/workspace/pipeline/crm-system.js');
+        const fs = require('fs');
+        const inquiry = JSON.parse(fs.readFileSync('${tempFile}', 'utf8'));
+        crm.addClient(inquiry);
+        fs.unlinkSync('${tempFile}');
+      `;
+      execSync(`node -e ${JSON.stringify(script)}`, { 
+        timeout: 5000 
+      });
+    } catch (e) {
+      console.error('CRM save failed:', e);
+      // Clean up temp file
+      try { fs.unlinkSync(tempFile); } catch {}
+    }
     
     // Send email notification (via Python script)
     const { execSync } = require('child_process');
