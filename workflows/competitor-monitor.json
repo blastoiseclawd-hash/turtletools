@@ -1,0 +1,194 @@
+{
+  "name": "Competitor Intelligence Monitor \u2014 TurtleTools",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "sched",
+      "name": "Daily Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url",
+              "name": "url",
+              "value": "https://example.com",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "competitorName",
+              "value": "Example Competitor",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set1",
+      "name": "Set Competitor URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "fetch",
+      "name": "Fetch Competitor Site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENROUTER_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "options": {},
+        "contentType": "raw",
+        "body": "={\n  \"model\": \"anthropic/claude-sonnet-4-20250514\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a competitive intelligence analyst. Analyze this webpage content and extract: 1) Key product/service offerings 2) Pricing changes (if visible) 3) New features or announcements 4) Marketing messaging themes 5) Anything notably different from last check. Be concise and factual.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this competitor page ({{ $('Set Competitor URL').item.json.competitorName }}):\\n\\n{{ $json.data }}\"\n    }\n  ],\n  \"max_tokens\": 1000\n}",
+        "specifyBody": "string"
+      },
+      "id": "ai",
+      "name": "AI Competitive Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "competitor",
+              "value": "={{ $('Set Competitor URL').item.json.competitorName }}",
+              "type": "string"
+            },
+            {
+              "id": "r2",
+              "name": "analysis",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "checkedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "report",
+      "name": "Format Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Check": {
+      "main": [
+        [
+          {
+            "node": "Set Competitor URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Competitor URL": {
+      "main": [
+        [
+          {
+            "node": "Fetch Competitor Site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Competitor Site": {
+      "main": [
+        [
+          {
+            "node": "AI Competitive Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Competitive Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Automated competitive intelligence: monitors competitor websites for changes, analyzes content with AI, and generates structured reports. Set your competitor URL and API key to get started.",
+    "category": "Research",
+    "difficulty": "intermediate",
+    "author": "TurtleTools"
+  }
+}

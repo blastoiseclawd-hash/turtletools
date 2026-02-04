@@ -1,0 +1,184 @@
+{
+  "name": "Universal Webhook to Notion \u2014 TurtleTools",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook-to-notion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Receive Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENROUTER_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={\n  \"model\": \"anthropic/claude-sonnet-4-20250514\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a data categorizer. Given webhook payload data, extract:\\n1. title: A short descriptive title for this event\\n2. category: One of [payment, signup, alert, update, error, other]\\n3. summary: A 1-2 sentence summary of what happened\\n4. priority: low, medium, or high\\n\\nReturn as JSON with keys: title, category, summary, priority\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Categorize this webhook data:\\n\\n{{ JSON.stringify($json.body) }}\"\n    }\n  ],\n  \"max_tokens\": 300,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "specifyBody": "string"
+      },
+      "id": "ai-categorize",
+      "name": "AI Categorize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "parsed",
+              "name": "parsed",
+              "value": "={{ JSON.parse($json.choices[0].message.content) }}",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "id": "parse-result",
+      "name": "Parse AI Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "YOUR_NOTION_DATABASE_ID",
+        "properties": {
+          "properties": [
+            {
+              "key": "Title",
+              "value": "={{ $json.parsed.title }}"
+            },
+            {
+              "key": "Category",
+              "value": "={{ $json.parsed.category }}"
+            },
+            {
+              "key": "Summary",
+              "value": "={{ $json.parsed.summary }}"
+            },
+            {
+              "key": "Priority",
+              "value": "={{ $json.parsed.priority }}"
+            }
+          ]
+        }
+      },
+      "id": "notion-create",
+      "name": "Create Notion Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        840,
+        300
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\", \"title\": \"{{ $json.parsed.title }}\", \"category\": \"{{ $json.parsed.category }}\" }"
+      },
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Receive Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Categorize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Categorize": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Result": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Page": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Universal webhook receiver that parses incoming data, categorizes with AI, and stores in Notion databases with proper properties. Works with Stripe, GitHub, Typeform, etc.",
+    "category": "Productivity",
+    "difficulty": "beginner",
+    "author": "TurtleTools"
+  }
+}
