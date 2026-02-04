@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Validate required fields
-    const required = ['name', 'email', 'project_type', 'description', 'budget', 'timeline'];
+    const required = ['name', 'email', 'project_type', 'description', 'timeline'];
     for (const field of required) {
       if (!data[field]) {
         return NextResponse.json(

@@ -142,23 +142,6 @@ export default function HirePage() {
             </div>
 
             <div>
-              <label htmlFor="budget" className="block text-sm font-medium mb-2">Budget Range *</label>
-              <select
-                id="budget"
-                name="budget"
-                required
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg focus:border-turtle-400 focus:outline-none"
-              >
-                <option value="">Select range...</option>
-                <option value="under-500">Under $350 (30% off launch pricing)</option>
-                <option value="500-1000">$350 - $700 (30% off)</option>
-                <option value="1000-2500">$700 - $1,750 (30% off)</option>
-                <option value="2500-5000">$1,750 - $3,500 (30% off)</option>
-                <option value="5000-plus">$3,500+ (30% off)</option>
-              </select>
-            </div>
-
-            <div>
               <label htmlFor="timeline" className="block text-sm font-medium mb-2">Timeline *</label>
               <select
                 id="timeline"
